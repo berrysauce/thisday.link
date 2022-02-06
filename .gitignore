@@ -131,3 +131,6 @@ dmypy.json
 # DETA
 .deta/
 help/
+
+# Other
+.DS_Store
