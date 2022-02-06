@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>thisday.link - The temporary link shortener</title>
+    <meta name="description" content="Create safe &amp; temporary links that are only valid for 24h and delete themselves.">
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/Footer-Basic.css">
+    <link rel="stylesheet" href="assets/css/Highlight-Clean.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "c6780e827dc34af9a1ea92417e794e6c"}'></script><!-- End Cloudflare Web Analytics -->
+</head>
+
+<body style="padding: 20px;">
+    <style>
+         /* The snackbar - position it at the bottom and in the middle of the screen */
+        #snackbar {
+          visibility: hidden; /* Hidden by default. Visible on click */
+          min-width: 250px; /* Set a default minimum width */
+          margin-left: -125px; /* Divide value of min-width by 2 */
+          background-color: #f5f5f5; /* Black background color */
+          color: #1d1e20; /* White text color */
+          text-align: center; /* Centered text */
+          border-radius: 5px; /* Rounded borders */
+          padding: 16px; /* Padding */
+          position: fixed; /* Sit on top of the screen */
+          z-index: 1; /* Add a z-index if needed */
+          left: 50%; /* Center the snackbar */
+          bottom: 30px; /* 30px from the bottom */
+        }
+
+        /* Show the snackbar when clicking on a button (class added with JavaScript) */
+        #snackbar.show {
+          visibility: visible; /* Show the snackbar */
+          /* Add animation: Take 0.5 seconds to fade in and out the snackbar.
+          However, delay the fade out process for 2.5 seconds */
+          -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+          animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        /* Animations to fade the snackbar in and out */
+        @-webkit-keyframes fadein {
+          from {bottom: 0; opacity: 0;}
+          to {bottom: 30px; opacity: 1;}
+        }
+
+        @keyframes fadein {
+          from {bottom: 0; opacity: 0;}
+          to {bottom: 30px; opacity: 1;}
+        }
+
+        @-webkit-keyframes fadeout {
+          from {bottom: 30px; opacity: 1;}
+          to {bottom: 0; opacity: 0;}
+        }
+
+        @keyframes fadeout {
+          from {bottom: 30px; opacity: 1;}
+          to {bottom: 0; opacity: 0;}
+        }
+    </style>
+    <section class="highlight-clean">
+        <div class="container" style="padding-top: 40px;">
+            <div class="intro" style="min-width: 50%;">
+                <a href="/" style="color: rgb(49,52,55);">
+                    <h2 class="text-start" style="margin-bottom: 0px;font-size: 40px;"><svg class="icon icon-tabler icon-tabler-clock" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="font-size: 37px;margin-bottom: 11px;margin-right: 5px;">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <polyline points="12 7 12 12 15 15"></polyline>
+                        </svg>thisday<span style="color: var(--bs-blue);">.link</span></h2>
+                </a>
+                <ul class="list-inline" style="margin-bottom: 25px;border-bottom: 1px solid rgb(125,130,133);padding-bottom: 5px;">
+                    <li class="list-inline-item"><a href="/" style="color: #313437;">Home</a></li>
+                    <li class="list-inline-item" style="color: #313437;"><a href="#" style="color: #313437;">How to use</a></li>
+                    <li class="list-inline-item" style="color: #313437;"><a href="https://github.com/berrysauce/thisday.link" target="_blank" style="color: #313437;">Contribute on GitHub</a></li>
+                </ul>
+                <p class="text-start" style="color: rgb(0,0,0);margin-top: 50px;"><span style="padding: 3px;background: #f6ff91;"><strong>Use thisday.link for safe &amp; temporary link shortening.</strong></span>&nbsp;Shortened links will be destroyed after 24h and they only work if the target website has an SSL certificate.</p>
+            </div>
+            <div class="intro" style="min-width: 50%;margin-top: 50px;padding: 15px;background: #f5f5f5;border-radius: 10px;">
+                <h2 class="text-center" style="margin-bottom: 0px;font-size: 18px;">This link is valid for</h2>
+                <p class="text-center" style="margin-bottom: 0px;font-size: 30px;color: var(--bs-blue);"><span id="hours">00</span>:<span id="minutes">00</span>:<span id="seconds">00</span></p>
+            </div>
+            <script>
+                // Set the date we're counting down to
+                var countDownDate = new Date("{{ countdown }}").getTime();
+
+                // Update the count down every 1 second
+                var x = setInterval(function() {
+
+                  // Get today's date and time
+                  var now = new Date(new Date().toUTCString().substr(0, 25))
+
+                  // Find the distance between now and the count down date
+                  var distance = countDownDate - now;
+
+                  // Time calculations for days, hours, minutes and seconds
+                  var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                  var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                  var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                  // Display the result in the element with id="demo"
+                  document.getElementById("hours").innerHTML = hours
+                  document.getElementById("minutes").innerHTML = minutes
+                  document.getElementById("seconds").innerHTML = seconds
+
+                  // If the count down is finished, write some text
+                  if (distance < 0) {
+                    clearInterval(x);
+                    document.getElementById("demo").innerHTML = "EXPIRED";
+                  }
+                }, 1000);
+            </script>
+            <div class="intro" style="min-width: 50%;margin-top: 0px;padding: 15px;background: #f5f5f5;border-radius: 10px;">
+                <h2 class="text-start" style="margin-bottom: 5px;font-size: 22px;">Your link is ready!</h2>
+                <div style="padding: 10px;padding-right: 10px;padding-left: 10px;background: #ffffff;border-radius: 5px;"><span>https://thisday.link/r/{{ slug }}</span><button class="btn btn-primary float-end" type="button" onclick="copyURL('https://thisday.link/r/{{ slug }}')" style="padding: 5px;background: rgb(245,245,245);color: rgb(140,140,140);border-style: none;padding-left: 10px;padding-right: 10px;margin-top: -5px;"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icon-tabler-clipboard" style="font-size: 20px;margin-bottom: 3px;">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"></path>
+                            <rect x="9" y="3" width="6" height="4" rx="2"></rect>
+                        </svg></button></div>
+                <script>
+                    function copyURL(url) {
+                        /* Code from https://www.w3schools.com/howto/howto_js_copy_clipboard.asp and https://www.w3schools.com/howto/howto_js_snackbar.asp*/
+
+                        /* Copy the text inside the text field */
+                        navigator.clipboard.writeText(url);
+
+                        var x = document.getElementById("snackbar");
+
+                        // Add the "show" class to DIV
+                        x.className = "show";
+
+                        // After 3 seconds, remove the show class from DIV
+                        setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+                    }
+                </script>
+                <div style="padding: 20px;background: #ffffff;border-radius: 5px;margin-top: 10px;margin-bottom: 10px;">
+                    <p class="text-center" style="font-size: 14px;min-width: 100%;">QR Code of your link</p><script type="text/javascript" src="/assets/js/jquery.min.js"></script>
+<script type="text/javascript" src="/assets/js/qrcode.min.js"></script>
+
+<div class="d-flex justify-content-center align-items-center" id="qrcode"></div>
+
+<script type="text/javascript">
+var qrcode = new QRCode(document.getElementById("qrcode"), {
+	width: 150,
+	height: 150
+});
+
+function makeCode () {		
+	var qrurl = "https://thisday.link/r/{{ slug }}"
+	qrcode.makeCode(qrurl);
+}
+
+makeCode();
+</script>
+                </div><a href="/"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icon-tabler-arrow-left" style="font-size: 20px;margin-bottom: 3px;margin-right: 5px;">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <line x1="5" y1="12" x2="11" y2="18"></line>
+                        <line x1="5" y1="12" x2="11" y2="6"></line>
+                    </svg>Shorten another link</a>
+            </div>
+            <div id="snackbar">Copied to clipboard!</div>
+            <div class="intro" style="min-width: 50%;">
+                <footer class="footer-basic">
+                    <ul class="list-inline" style="font-size: 14px;">
+                        <li class="list-inline-item"><a href="/report">Report abuse</a></li>
+                        <li class="list-inline-item"><a href="/terms">Terms</a></li>
+                        <li class="list-inline-item"><a href="/privacy">Privacy</a></li>
+                    </ul>
+                    <p class="copyright" style="margin-top: 5px;">thisday.link © 2022</p>
+                </footer>
+            </div>
+        </div>
+    </section>
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/js/qrcode.js"></script>
+    <script src="assets/js/qrcode.min.js"></script>
+</body>
+
+</html>

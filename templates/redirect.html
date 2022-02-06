@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>thisday.link - The temporary link shortener</title>
+    <meta name="description" content="Create safe &amp; temporary links that are only valid for 24h and delete themselves.">
+    <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/assets/css/Footer-Basic.css">
+    <link rel="stylesheet" href="/assets/css/Highlight-Clean.css">
+    <link rel="stylesheet" href="/assets/css/styles.css">
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "c6780e827dc34af9a1ea92417e794e6c"}'></script><!-- End Cloudflare Web Analytics -->
+</head>
+
+<body style="padding: 20px;">
+    <section class="highlight-clean">
+        <div class="container" style="padding-top: 40px;">
+            <div class="intro" style="min-width: 50%;">
+                <a href="/">
+                    <h2 class="text-center" style="margin-bottom: 0px;font-size: 40px;color: rgb(49,52,55);"><svg class="icon icon-tabler icon-tabler-clock" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="font-size: 37px;margin-bottom: 11px;margin-right: 5px;">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <polyline points="12 7 12 12 15 15"></polyline>
+                        </svg>thisday<span style="color: var(--bs-blue);">.link</span></h2>
+                </a>
+            </div>
+            {% autoescape false %} {{ countdown_html }} {% endautoescape %}
+            <script>
+                // Set the date we're counting down to
+                var countDownDate = new Date("{{ countdown }}").getTime();
+
+                // Update the count down every 1 second
+                var x = setInterval(function() {
+
+                  // Get today's date and time
+                  var now = new Date(new Date().toUTCString().substr(0, 25))
+
+                  // Find the distance between now and the count down date
+                  var distance = countDownDate - now;
+
+                  // Time calculations for days, hours, minutes and seconds
+                  var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                  var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                  var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                  // Display the result in the element with id="demo"
+                  document.getElementById("hours").innerHTML = hours
+                  document.getElementById("minutes").innerHTML = minutes
+                  document.getElementById("seconds").innerHTML = seconds
+
+                  // If the count down is finished, write some text
+                  if (distance < 0) {
+                    clearInterval(x);
+                    document.getElementById("hours").innerHTML = 00
+                    document.getElementById("minutes").innerHTML = 00
+                    document.getElementById("seconds").innerHTML = 00
+                  }
+                }, 1000);
+            </script>
+            {% autoescape false %} {{ redirect_html }} {% endautoescape %}
+            <div class="intro" style="min-width: 50%;">
+                <footer class="footer-basic">
+                    <p class="text-center" style="font-size: 14px;">thisday.link is not responsible for the contents on websites we link to.</p>
+                    <ul class="list-inline" style="font-size: 14px;">
+                        <li class="list-inline-item"><a href="/report">Report abuse</a></li>
+                        <li class="list-inline-item"><a href="/terms">Terms</a></li>
+                        <li class="list-inline-item"><a href="/privacy">Privacy</a></li>
+                    </ul>
+                    <p class="copyright" style="margin-top: 5px;">thisday.link © 2022</p>
+                </footer>
+            </div>
+        </div>
+    </section>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/qrcode.js"></script>
+    <script src="/assets/js/qrcode.min.js"></script>
+</body>
+
+</html>
