@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -10,18 +10,43 @@ from deta import Deta
 import datetime
 import string
 import random
+from typing import Optional
+from pydantic import BaseModel
 
 
 load_dotenv()
 DETA_TOKEN = os.getenv("DETA_TOKEN")
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
 deta = Deta(DETA_TOKEN)
 db = deta.Base("links")
 templates = Jinja2Templates(directory="templates")
 
 app.mount("/assets", StaticFiles(directory="templates/assets"), name="assets")
 
+
+def createEntry(url):
+    if "http" not in url:
+        raise HTTPException(status_code=500, detail="Wrong URL format")
+    slug = ''.join(random.choices(string.ascii_lowercase + string.digits, k=7))
+    expiry = datetime.datetime.now()
+    expiry += datetime.timedelta(days=1)
+    db.insert({
+        "url": url,
+        "slug": slug,
+        "expiry": str(expiry)
+    })
+    return slug, expiry
+
+class CreateItem(BaseModel):
+    url: str
+
+
+"""
+=======================================================================
+                           MAIN ENDPOINTS
+=======================================================================
+"""
 
 @app.get("/", response_class=HTMLResponse)
 def root(request: Request):
@@ -90,14 +115,7 @@ def redirect(slug: str, request: Request):
 
 @app.post("/create", response_class=HTMLResponse)
 def create(request: Request, url: str = Form(...)):
-    slug = ''.join(random.choices(string.ascii_lowercase + string.digits, k=7))
-    expiry = datetime.datetime.now()
-    expiry += datetime.timedelta(days=1)
-    db.insert({
-        "url": url,
-        "slug": slug,
-        "expiry": str(expiry)
-    })
+    slug, expiry = createEntry(url)
     countdown = expiry.strftime("%b %d, %Y, %H:%M:%S")
     return templates.TemplateResponse("link.html", {
         "request": request,
@@ -106,17 +124,65 @@ def create(request: Request, url: str = Form(...)):
     })
 
 @app.get("/terms", response_class=HTMLResponse)
-def error(request: Request):
+def terms(request: Request):
     return templates.TemplateResponse("terms.html", {"request": request})
 
 @app.get("/privacy", response_class=HTMLResponse)
-def error(request: Request):
+def privacy(request: Request):
     return templates.TemplateResponse("privacy.html", {"request": request})
 
 @app.get("/404", response_class=HTMLResponse)
 def error(request: Request):
     return templates.TemplateResponse("error.html", {"request": request})
 
+
+"""
+=======================================================================
+                           API ENDPOINTS
+=======================================================================
+"""
+
+@app.get("/api/v1/meta/{slug}")
+def api_meta(slug: str):
+    res = db.fetch({"slug": slug}, limit=1).items
+
+    if len(res) == 0:
+        return {
+            "detail": "Link expired",
+            "slug": slug
+        }
+    res = res[0]
+    expiry = datetime.datetime.strptime(res["expiry"], "%Y-%m-%d %H:%M:%S.%f")
+
+    if expiry < datetime.datetime.now():
+        return {
+            "detail": "Link expired",
+            "slug": slug
+        }
+    else:
+        return {
+            "detail": "Link available",
+            "slug": slug,
+            "expiry": res["expiry"],
+            "redirect": res["url"]
+        }
+
+@app.post("/api/v1/create")
+def api_meta(item: CreateItem):
+    slug, expiry = createEntry(item.url)
+    return {
+        "detail": "Link created",
+        "slug": slug,
+        "expiry": str(expiry),
+        "redirect": item.url
+    }
+
+
+"""
+=======================================================================
+                              RUNNER
+=======================================================================
+"""
 
 @app.exception_handler(StarletteHTTPException)
 async def my_custom_exception_handler(request: Request, exc: StarletteHTTPException):
