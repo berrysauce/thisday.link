@@ -1,6 +1,6 @@
 import uvicorn
-from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, Form, HTTPException, status
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -12,6 +12,7 @@ import string
 import random
 from typing import Optional
 from pydantic import BaseModel
+import requests
 
 
 load_dotenv()
@@ -31,12 +32,23 @@ def createEntry(url):
     slug = ''.join(random.choices(string.ascii_lowercase + string.digits, k=7))
     expiry = datetime.datetime.now()
     expiry += datetime.timedelta(days=1)
-    db.insert({
+    db.put({
         "url": url,
         "slug": slug,
         "expiry": str(expiry)
-    })
+    }, expire_in=86400)
+    # 86400s = 24h
     return slug, expiry
+
+def checkSSL(domain):
+    if "http://" in domain:
+        domain.replace("http://", "https://")
+
+    try:
+        requests.get(domain)
+        return True
+    except requests.exceptions.SSLError:
+        return False
 
 class CreateItem(BaseModel):
     url: str
@@ -49,8 +61,15 @@ class CreateItem(BaseModel):
 """
 
 @app.get("/", response_class=HTMLResponse)
-def root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+def root(request: Request, error: Optional[str] = None):
+    if error == "ssl":
+        alert = """<div class="alert alert-danger" role="alert"><span><strong>Error </strong>- The link you&#39;re trying to shorten doesn&#39;t support SSL. thisday.link can only shorten links with valid SSL certificates.</span></div>"""
+    elif error == "blocked":
+        alert = """<div class="alert alert-danger" role="alert"><span><strong>Error </strong>- The domain of the link you&#39;re trying to shorten was blocked by thisday.link. You cannot create shortened links for it.</span></div>"""
+    else:
+        alert = """"""
+
+    return templates.TemplateResponse("index.html", {"request": request, "alert": alert})
 
 @app.get("/r/{slug}", response_class=HTMLResponse)
 def redirect(slug: str, request: Request):
@@ -115,6 +134,9 @@ def redirect(slug: str, request: Request):
 
 @app.post("/create", response_class=HTMLResponse)
 def create(request: Request, url: str = Form(...)):
+    if checkSSL(url) is False:
+        return RedirectResponse("/?error=ssl", status_code=status.HTTP_303_SEE_OTHER)
+
     slug, expiry = createEntry(url)
     countdown = expiry.strftime("%b %d, %Y, %H:%M:%S")
     return templates.TemplateResponse("link.html", {
@@ -169,6 +191,11 @@ def api_meta(slug: str):
 
 @app.post("/api/v1/create")
 def api_meta(item: CreateItem):
+    if checkSSL(item.url) is False:
+        return {
+            "detail": "SSL Error"
+        }
+
     slug, expiry = createEntry(item.url)
     return {
         "detail": "Link created",

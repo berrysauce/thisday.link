@@ -6,3 +6,4 @@ pydantic
 python-multipart
 aiofiles
 jinja2
+requests
