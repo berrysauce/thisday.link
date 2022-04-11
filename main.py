@@ -28,19 +28,27 @@ templates = Jinja2Templates(directory="templates")
 app.mount("/assets", StaticFiles(directory="templates/assets"), name="assets")
 
 # - TODOS ----------------------------------------------
-# TODO Add documentation
 # TODO Add Blocklist report form
-# TODO Add Captcha to all forms
+# TODO Add Captcha to all forms (maybe)
 # ------------------------------------------------------
 
 
 def createEntry(url):
+    """
+    Creates a database entry with the given URL and returns its generated slug and expiry.
+    Also checks for URL format.
+    """
+
     if "http" not in url:
         raise HTTPException(status_code=500, detail="Wrong URL format")
 
     slug = ''.join(random.choices(string.ascii_lowercase + string.digits, k=7))
+
+    # Get currect time and add time delta
+    # NOTE: JavaScript later converts expiry date to user's timezone (this is likely UTC)
     expiry = datetime.datetime.now()
     expiry += datetime.timedelta(days=1)
+
     db.put({
         "url": url,
         "slug": slug,
@@ -51,7 +59,12 @@ def createEntry(url):
 
 
 def checkSSL(domain):
+    """
+    Checks the given domain for SSL validity and returns False if SSL is invalid
+    """
+
     if "http://" in domain:
+        # replace http:// with https:// since only SSL compatible domains are allowed
         domain.replace("http://", "https://")
 
     try:
@@ -62,20 +75,32 @@ def checkSSL(domain):
 
 
 def checkBlocklist(domain):
+    """
+    Checks the given domain against the blocklist database.
+    Also checks for RegEx incompatibility.
+    """
+
+    # search with RegEx
     blocksearch = re.search("https?://(www\.)?([a-zA-Z0-9]+)(\.[a-zA-Z0-9.-]+)", domain)
     items = blocklist.fetch().items
 
     if blocksearch:
         for item in items:
+            # also check if blocklist domain is set to block
             if item["domain"] in blocksearch.group() and item["block"] is True:
                 return True
     else:
+        # domain does not contain any RegEx result -> invalid domain
         raise HTTPException(status_code=500, detail="Unsupported URL/TLD format")
 
     return False
 
 
 class CreateItem(BaseModel):
+    """
+    BaseModel for HTTP API POST request.
+    """
+
     url: str
 
 
@@ -87,6 +112,10 @@ class CreateItem(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 def root(request: Request, error: Optional[str] = None):
+    """
+    Main endpoint with web interface. Shows an error if error query parameter is given.
+    """
+
     if error == "ssl":
         alert = """<div class="alert alert-danger" role="alert"><span><strong>Error </strong>- The link you&#39;re trying to shorten doesn&#39;t support SSL. thisday.link can only shorten links with valid SSL certificates.</span></div>"""
     elif error == "blocked":
@@ -98,6 +127,10 @@ def root(request: Request, error: Optional[str] = None):
 
 @app.get("/r/{slug}", response_class=HTMLResponse)
 def redirect(slug: str, request: Request):
+    """
+    Shows redirect web interface based on given slug.
+    """
+
     res = db.fetch({"slug": slug}, limit=1).items
 
     if len(res) == 0:
@@ -159,6 +192,10 @@ def redirect(slug: str, request: Request):
 
 @app.post("/create", response_class=HTMLResponse)
 def create(request: Request, url: str = Form(...)):
+    """
+    Creates a shortened link item from form on main endpoint.
+    """
+
     if checkBlocklist(url) is True:
         return RedirectResponse("/?error=blocked", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -175,14 +212,26 @@ def create(request: Request, url: str = Form(...)):
 
 @app.get("/terms", response_class=HTMLResponse)
 def terms(request: Request):
+    """
+    Shows /terms.
+    """
+
     return templates.TemplateResponse("terms.html", {"request": request})
 
 @app.get("/privacy", response_class=HTMLResponse)
 def privacy(request: Request):
+    """
+    Shows /privacy.
+    """
+
     return templates.TemplateResponse("privacy.html", {"request": request})
 
 @app.get("/404", response_class=HTMLResponse)
 def error(request: Request):
+    """
+    Shows /404.
+    """
+
     return templates.TemplateResponse("error.html", {"request": request})
 
 
@@ -194,6 +243,10 @@ def error(request: Request):
 
 @app.get("/api/v1/meta/{slug}")
 def api_meta(slug: str, response: Response):
+    """
+    HTTP API metadata endpoint. Returns the shortened link's metadata from database.
+    """
+
     res = db.fetch({"slug": slug}, limit=1).items
 
     if len(res) == 0:
@@ -222,6 +275,10 @@ def api_meta(slug: str, response: Response):
 
 @app.post("/api/v1/create")
 def api_meta(item: CreateItem, response: Response):
+    """
+    HTTP API create endpoint. Returns the shortened link's generated metadata from database.
+    """
+
     if checkBlocklist(item.url) is True:
         response.status_code = status.HTTP_403_FORBIDDEN
         return {
@@ -252,6 +309,10 @@ def api_meta(item: CreateItem, response: Response):
 
 @app.exception_handler(StarletteHTTPException)
 async def my_custom_exception_handler(request: Request, exc: StarletteHTTPException):
+    """
+    Handles exceptions and redirects to correct error page.
+    """
+
     if exc.status_code == 404:
         return templates.TemplateResponse("error.html", {"request": request, "code": "404", "description": "The requested resource couldn't be found."})
     elif exc.status_code == 500:
