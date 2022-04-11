@@ -30,6 +30,7 @@ app.mount("/assets", StaticFiles(directory="templates/assets"), name="assets")
 # - TODOS ----------------------------------------------
 # TODO Add Blocklist report form
 # TODO Add Captcha to all forms (maybe)
+# TODO Add security headers
 # ------------------------------------------------------
 
 
@@ -62,10 +63,6 @@ def checkSSL(domain):
     """
     Checks the given domain for SSL validity and returns False if SSL is invalid
     """
-
-    if "http://" in domain:
-        # replace http:// with https:// since only SSL compatible domains are allowed
-        domain.replace("http://", "https://")
 
     try:
         requests.get(domain)
@@ -196,6 +193,10 @@ def create(request: Request, url: str = Form(...)):
     Creates a shortened link item from form on main endpoint.
     """
 
+    # replace http:// with https:// since only SSL compatible domains are allowed
+    if "http://" in url:
+        url = url.replace("http://", "https://")
+
     if checkBlocklist(url) is True:
         return RedirectResponse("/?error=blocked", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -279,25 +280,31 @@ def api_meta(item: CreateItem, response: Response):
     HTTP API create endpoint. Returns the shortened link's generated metadata from database.
     """
 
-    if checkBlocklist(item.url) is True:
+    # replace http:// with https:// since only SSL compatible domains are allowed
+    if "http://" in item.url:
+        url = item.url.replace("http://", "https://")
+    else:
+        url = item.url
+
+    if checkBlocklist(url) is True:
         response.status_code = status.HTTP_403_FORBIDDEN
         return {
             "detail": "Domain blocked by thisday.link"
         }
 
-    if checkSSL(item.url) is False:
+    if checkSSL(url) is False:
         response.status_code = status.HTTP_403_FORBIDDEN
         return {
             "detail": "SSL Error"
         }
 
-    slug, expiry = createEntry(item.url)
+    slug, expiry = createEntry(url)
     response.status_code = status.HTTP_200_OK
     return {
         "detail": "Link created",
         "slug": slug,
         "expiry": str(expiry),
-        "redirect": item.url
+        "redirect": url
     }
 
 
