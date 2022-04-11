@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import FastAPI, Request, Form, HTTPException, status
+from fastapi import FastAPI, Request, Response, Form, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -35,17 +35,6 @@ app.mount("/assets", StaticFiles(directory="templates/assets"), name="assets")
 
 
 def createEntry(url):
-    blocksearch = re.search("https?://(www\.)?([a-zA-Z0-9]+)(\.[a-zA-Z0-9.-]+)", url)
-    items = blocklist.fetch().items
-
-    if blocksearch:
-        for item in items:
-            if item["domain"] in blocksearch.group() and item["block"] == True:
-                raise HTTPException(status_code=403, detail="The domain you want to shorten was blocked by thisday.link. You cannot create shortened links for it.")
-    else:
-        raise HTTPException(status_code=500, detail="Unsupported URL/TLD format")
-
-
     if "http" not in url:
         raise HTTPException(status_code=500, detail="Wrong URL format")
 
@@ -60,6 +49,7 @@ def createEntry(url):
     # 86400s = 24h
     return slug, expiry
 
+
 def checkSSL(domain):
     if "http://" in domain:
         domain.replace("http://", "https://")
@@ -69,6 +59,21 @@ def checkSSL(domain):
         return True
     except requests.exceptions.SSLError:
         return False
+
+
+def checkBlocklist(domain):
+    blocksearch = re.search("https?://(www\.)?([a-zA-Z0-9]+)(\.[a-zA-Z0-9.-]+)", domain)
+    items = blocklist.fetch().items
+
+    if blocksearch:
+        for item in items:
+            if item["domain"] in blocksearch.group() and item["block"] is True:
+                return True
+    else:
+        raise HTTPException(status_code=500, detail="Unsupported URL/TLD format")
+
+    return False
+
 
 class CreateItem(BaseModel):
     url: str
@@ -154,6 +159,9 @@ def redirect(slug: str, request: Request):
 
 @app.post("/create", response_class=HTMLResponse)
 def create(request: Request, url: str = Form(...)):
+    if checkBlocklist(url) is True:
+        return RedirectResponse("/?error=blocked", status_code=status.HTTP_303_SEE_OTHER)
+
     if checkSSL(url) is False:
         return RedirectResponse("/?error=ssl", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -185,10 +193,11 @@ def error(request: Request):
 """
 
 @app.get("/api/v1/meta/{slug}")
-def api_meta(slug: str):
+def api_meta(slug: str, response: Response):
     res = db.fetch({"slug": slug}, limit=1).items
 
     if len(res) == 0:
+        response.status_code = status.HTTP_404_NOT_FOUND
         return {
             "detail": "Link expired",
             "slug": slug
@@ -197,11 +206,13 @@ def api_meta(slug: str):
     expiry = datetime.datetime.strptime(res["expiry"], "%Y-%m-%d %H:%M:%S.%f")
 
     if expiry < datetime.datetime.now():
+        response.status_code = status.HTTP_404_NOT_FOUND
         return {
             "detail": "Link expired",
             "slug": slug
         }
     else:
+        response.status_code = status.HTTP_200_OK
         return {
             "detail": "Link available",
             "slug": slug,
@@ -210,13 +221,21 @@ def api_meta(slug: str):
         }
 
 @app.post("/api/v1/create")
-def api_meta(item: CreateItem):
+def api_meta(item: CreateItem, response: Response):
+    if checkBlocklist(item.url) is True:
+        response.status_code = status.HTTP_403_FORBIDDEN
+        return {
+            "detail": "Domain blocked by thisday.link"
+        }
+
     if checkSSL(item.url) is False:
+        response.status_code = status.HTTP_403_FORBIDDEN
         return {
             "detail": "SSL Error"
         }
 
     slug, expiry = createEntry(item.url)
+    response.status_code = status.HTTP_200_OK
     return {
         "detail": "Link created",
         "slug": slug,
