@@ -1,6 +1,13 @@
 <h1 align="center">📆 thisday.link</h1>
 <p align="center">Secure link shortener with 24h valid links</p>
 
+<p align="center">
+  <img alt="Python version" src="https://img.shields.io/badge/python-%5E3.8-blue">
+  <img alt="GitHub repo size" src="https://img.shields.io/github/repo-size/berrysauce/thisday.link">
+  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/berrysauce/thisday.link">
+  <img alt="Website Status" src="https://img.shields.io/website?down_color=red&down_message=down&url=https%3A%2F%2Fthisday.link">
+</p>
+
 ## What is thisday.link
 It's basically *ANOTHER* link shortener. But why is it special, you might ask? Shortened links are only valid for 24 hours and shortened domains have to support SSL (and have it corectly set up) *and* not be on our blocklist. In the future, thisday.link might check popular malicious domain blacklists to be extra secure. thisday.link also generates a handy QR code for you.
 
