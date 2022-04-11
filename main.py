@@ -13,6 +13,7 @@ import random
 from typing import Optional
 from pydantic import BaseModel
 import requests
+import re
 
 
 load_dotenv()
@@ -21,14 +22,33 @@ DETA_TOKEN = os.getenv("DETA_TOKEN")
 app = FastAPI(docs_url=None, redoc_url=None)
 deta = Deta(DETA_TOKEN)
 db = deta.Base("links")
+blocklist = deta.Base("blocklist")
 templates = Jinja2Templates(directory="templates")
 
 app.mount("/assets", StaticFiles(directory="templates/assets"), name="assets")
 
+# - TODOS ----------------------------------------------
+# TODO Add documentation
+# TODO Add Blocklist report form
+# TODO Add Captcha to all forms
+# ------------------------------------------------------
+
 
 def createEntry(url):
+    blocksearch = re.search("https?://(www\.)?([a-zA-Z0-9]+)(\.[a-zA-Z0-9.-]+)", url)
+    items = blocklist.fetch().items
+
+    if blocksearch:
+        for item in items:
+            if item["domain"] in blocksearch.group() and item["block"] == True:
+                raise HTTPException(status_code=403, detail="The domain you want to shorten was blocked by thisday.link. You cannot create shortened links for it.")
+    else:
+        raise HTTPException(status_code=500, detail="Unsupported URL/TLD format")
+
+
     if "http" not in url:
         raise HTTPException(status_code=500, detail="Wrong URL format")
+
     slug = ''.join(random.choices(string.ascii_lowercase + string.digits, k=7))
     expiry = datetime.datetime.now()
     expiry += datetime.timedelta(days=1)
