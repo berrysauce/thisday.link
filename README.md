@@ -8,6 +8,8 @@
   <img alt="Website Status" src="https://img.shields.io/website?down_color=red&down_message=down&url=https%3A%2F%2Fthisday.link">
 </p>
 
+> ⚠️ thisday.link is temporarily out of service. I've noticed suspicious traffic and it has became to much work to block all suspicious domains. I might restart the service at some point if a fix is available.
+
 ## What is thisday.link
 It's basically *ANOTHER* link shortener. But why is it special, you might ask? Shortened links are only valid for 24 hours and shortened domains have to support SSL (and have it corectly set up) *and* not be on our blocklist. In the future, thisday.link might check popular malicious domain blacklists to be extra secure. thisday.link also generates a handy QR code for you.
 
