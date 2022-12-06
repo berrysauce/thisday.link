@@ -75,7 +75,3 @@ POST /api/v1/create
   "detail": "Domain blocked by thisday.link"
 }
 ```
-
-
-### Made possible by DETA ❤️
-<a href="https://deta.sh/?ref=thisday.link" target="_blank"><img src="https://cdn.berrysauce.me/assets/deta-sponsor-banner.jpg" alt="Sponsored by Deta"></a>
